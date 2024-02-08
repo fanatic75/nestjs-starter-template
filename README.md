@@ -35,8 +35,11 @@ $ pnpm install
 ## Running the app
 
 ```bash
+# development USING DOCKER
+$ docker compose up -d --build
+
 # development
-$ pnpm run start
+pnpm run start
 
 # watch mode
 $ pnpm run start:dev
