@@ -1,0 +1,74 @@
+services:
+  app: 
+    image: "node:20-alpine"
+    container_name: "predict-api"
+    restart: on-failure
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    networks:
+      - predict-network
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+      - app-node-modules:/usr/src/app/node_modules
+    command: sh -c "pnpm run migrate:execute && pnpm run start:dev" 
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE1_URL: ${DATABASE1_URL}
+      DATABASE2_URL: ${DATABASE2_URL}
+      CACHE_URL: ${CACHE_URL}
+    depends_on:
+      - db
+      - redis
+  db:
+    image: postgres
+    container_name: "predict-db"
+    restart: on-failure
+    networks:
+      - predict-network
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+  redis:
+    image: redis
+    container_name: "predict-redis"
+    restart: on-failure
+    command: >
+      redis-server
+      --maxmemory            512mb
+      --maxmemory-policy     allkeys-lru
+      --maxmemory-samples    5
+    networks:
+      - predict-network
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/var/lib/redis/data
+  postgres_admin:
+    image: dpage/pgadmin4:4.28
+    depends_on:
+      - db
+    networks:
+      - predict-network
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-fanatic75@domain.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-password}
+    ports:
+      - 5050:80
+networks:
+  predict-network:
+    driver: bridge
+volumes:
+  app-data:
+  db-data:
+  redis-data:
+  app-node-modules:
